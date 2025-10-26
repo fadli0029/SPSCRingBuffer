@@ -1,6 +1,6 @@
 /**
  * @file SPSCRingBuffer.hpp
- * @brief A fast wait-free spsc ring buffer/circular queue in modern C++.
+ * @brief A fast lock-free spsc ring buffer/circular queue in modern C++.
  * @author Fadli Arsani <fadlialim0029@gmail.com>
  * @version 1.0.0
  *
@@ -36,7 +36,7 @@
 namespace fadli {
 
 /**
- * @brief Wait-free single-producer single-consumer ring buffer
+ * @brief Lock-free single-producer single-consumer ring buffer
  * @tparam T The type of elements stored in the ring buffer
  * @warning This class is NOT thread-safe for multiple producers or consumers.
  *          Use appropriate sync. or consider MPSC variants for such cases.

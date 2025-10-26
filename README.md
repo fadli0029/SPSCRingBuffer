@@ -8,6 +8,6 @@ This is a fast lock-free spsc ring buffer/circular queue, implemented in modern 
 - [ ] Benchmark against Erik Rigtorp's, Facebook's Folly, Boost's, moodycamel's, Drogalis's SPSC-Queue implementations
 
 # References/Inspirations
-- [Erik Rigtorp's SPSC Queue](https://github.com/rigtorp/SPSCQueue/), learned a lot from his implementations
+- [Erik Rigtorp's SPSC Queue](https://github.com/rigtorp/SPSCQueue/)
 - [Optimizing a ring buffer for throughput, Erik Rigtorp](https://rigtorp.se/ringbuffer/)
 - [Drogalis's SPSC Queue](https://github.com/drogalis/SPSC-Queue)
