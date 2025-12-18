@@ -30,10 +30,21 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
+#include <new>
 #include <optional>
 #include <type_traits>
 
 namespace fadli {
+
+namespace detail {
+#ifdef __cpp_lib_hardware_interference_size
+inline constexpr std::size_t cache_line_size =
+    std::hardware_destructive_interference_size;
+#else
+inline constexpr std::size_t cache_line_size = 64;
+#endif
+} // namespace detail
 
 /**
  * @brief Lock-free single-producer single-consumer ring buffer
@@ -82,10 +93,10 @@ template <typename T> class SPSCRingBuffer {
 
     // Separate cache lines to prevent false sharing between producer and
     // consumer
-    alignas(64) std::atomic<std::size_t> head_{0}; ///< Consumer index
-    alignas(64) std::size_t tail_cache_{0};        ///< Cached tail for consumer
-    alignas(64) std::atomic<std::size_t> tail_{0}; ///< Producer index
-    alignas(64) std::size_t head_cache_{0};        ///< Cached head for producer
+    alignas(detail::cache_line_size) std::atomic<std::size_t> head_{0}; ///< Consumer index
+    alignas(detail::cache_line_size) std::size_t tail_cache_{0}; ///< Cached tail for consumer
+    alignas(detail::cache_line_size) std::atomic<std::size_t> tail_{0}; ///< Producer index
+    alignas(detail::cache_line_size) std::size_t head_cache_{0}; ///< Cached head for producer
 
   public:
     using value_type = T;
@@ -93,18 +104,12 @@ template <typename T> class SPSCRingBuffer {
 
     /**
      * @brief Constructs a ring buffer with the specified capacity
-     * @param capacity Desired capacity (will be rounded up to power of 2)
+     * @param capacity Desired capacity (will be rounded up to power of 2, min 2)
      * @throws std::bad_alloc If memory allocation fails
      */
     explicit SPSCRingBuffer(size_type capacity)
-        : capacity_(next_power_of_2(capacity > 0 ? capacity : 1)),
-          index_mask_(capacity_ - 1), buffer_(new T[capacity_]) {
-        // Ensure capacity is reasonable
-        if (capacity_ < 2) {
-            capacity_ = 2;
-            index_mask_ = 1;
-        }
-    }
+        : capacity_(next_power_of_2(capacity > 1 ? capacity : 2)),
+          index_mask_(capacity_ - 1), buffer_(new T[capacity_]) {}
 
     /**
      * @brief Destructor
@@ -189,9 +194,12 @@ template <typename T> class SPSCRingBuffer {
     /**
      * @brief Remove the front element
      * @note This function should only be called from the consumer thread
+     * @warning Calling pop() on an empty buffer is undefined behavior
      */
     void pop() noexcept {
         const auto current_head = head_.load(std::memory_order_relaxed);
+        assert(current_head != tail_.load(std::memory_order_relaxed) &&
+               "pop() called on empty buffer");
         head_.store((current_head + 1) & index_mask_,
                     std::memory_order_release);
     }
