@@ -1,5 +1,31 @@
 # SPSCRingBuffer
-This is a fast lock-free spsc ring buffer/circular queue, implemented in modern C++.
+A fast lock-free single-producer single-consumer ring buffer in modern C++.
+
+## Usage
+
+```cpp
+#include <fadli/SPSCRingBuffer.hpp>
+#include <thread>
+
+fadli::SPSCRingBuffer<int> q(1024);
+
+// Producer
+std::thread producer([&] {
+    for (int i = 0; i < 100; ++i) {
+        while (!q.try_push(i));
+    }
+});
+
+// Consumer
+std::thread consumer([&] {
+    for (int i = 0; i < 100; ++i) {
+        while (auto* val = q.front()) {
+            process(*val);
+            q.pop();
+        }
+    }
+});
+```
 
 # TODO's
 - [ ] Custom allocator support
